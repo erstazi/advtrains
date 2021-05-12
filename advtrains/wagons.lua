@@ -84,17 +84,17 @@ end
 function wagon:set_id(wid)
 	self.id = wid
 	self.initialized = true
-	
+
 	local data = advtrains.wagons[self.id]
 	advtrains.wagon_objects[self.id] = self.object
-	
+
 	--atdebug("Created wagon entity:",self.name," w_id",wid," t_id",data.train_id)
-	
+
 	if self.has_inventory then
 		--to be used later
 		local inv=minetest.get_inventory({type="detached", name="advtrains_wgn_"..self.id})
 		-- create inventory, if not yet created
-		if not inv then	
+		if not inv then
 			inv=minetest.create_detached_inventory("advtrains_wgn_"..self.id, {
 				allow_move = function(inv, from_list, from_index, to_list, to_index, count, player)
 					return invcallback(wid, player:get_player_name(), count, 0)
@@ -118,15 +118,15 @@ function wagon:set_id(wid)
 	end
 	self.door_anim_timer=0
 	self.door_state=0
-	
+
 	minetest.after(0.2, function() self:reattach_all() end)
-	
-	
-	
+
+
+
 	if self.set_textures then
 		self:set_textures(data)
 	end
-	
+
 	if self.custom_on_activate then
 		self:custom_on_activate()
 	end
@@ -169,9 +169,9 @@ end
 -- Remove the wagon
 function wagon:on_punch(puncher, time_from_last_punch, tool_capabilities, direction)
 		if not self:ensure_init() then return end
-		
+
 		local data = advtrains.wagons[self.id]
-	
+
 		if not puncher or not puncher:is_player() then
 			return
 		end
@@ -179,7 +179,7 @@ function wagon:on_punch(puncher, time_from_last_punch, tool_capabilities, direct
 		   minetest.chat_send_player(puncher:get_player_name(), attrans("This wagon is owned by @1, you can't destroy it.", data.owner));
 		   return
 		end
-		
+
 		if self.custom_may_destroy then
 			if not self.custom_may_destroy(self, puncher, time_from_last_punch, tool_capabilities, direction) then
 				return
@@ -205,7 +205,7 @@ function wagon:on_punch(puncher, time_from_last_punch, tool_capabilities, direct
 				end
 			end
 		end
-		
+
 		if #(self:train().trainparts)>1 then
 		   minetest.chat_send_player(puncher:get_player_name(), attrans("Wagon needs to be decoupled from other wagons in order to destroy it."));
 		   return
@@ -216,8 +216,8 @@ function wagon:on_punch(puncher, time_from_last_punch, tool_capabilities, direct
 			minetest.chat_send_player(puncher:get_player_name(), attrans("Warning: If you destroy this wagon, you only get some steel back! If you are sure, hold Sneak and left-click the wagon."))
 			return
 		end
-		
-		
+
+
 		if not self:destroy() then return end
 
 		local inv = puncher:get_inventory()
@@ -237,15 +237,15 @@ function wagon:destroy()
 			atwarn("wagon:destroy(): data is not set!")
 			return
 		end
-		
+
 		if self.custom_on_destroy then
 			self.custom_on_destroy(self)
 		end
-		
+
 		for seat,_ in pairs(data.seatp) do
 			self:get_off(seat)
 		end
-		
+
 		if data.train_id and self:train() then
 			advtrains.remove_train(data.train_id)
 			advtrains.wagons[self.id]=nil
@@ -253,7 +253,7 @@ function wagon:destroy()
 		end
 	end
 	--atdebug("[wagon ", self.id, "]: destroying")
-	
+
 	self.object:remove()
 	return true
 end
@@ -264,35 +264,35 @@ function wagon:is_driver_stand(seat)
 	else
 		return seat.driving_ctrl_access
 	end
-	
+
 end
 
 function wagon:on_step(dtime)
 		if not self:ensure_init() then return end
-		
+
 		if advtrains.is_no_action() then
 			self.object:remove()
 			return
 		end
-		
+
 		local t=os.clock()
 		local pos = self.object:get_pos()
 		local data = advtrains.wagons[self.id]
-		
+
 		if not pos then
 			--atdebug("["..self.id.."][fatal] missing position (object:getpos() returned nil)")
 			return
 		end
-		
+
 		if not data.seatp then
 			data.seatp={}
 		end
 		if not self.seatpc then
 			self.seatpc={}
 		end
-		
+
 		local train=self:train()
-		
+
 		local is_in_loaded_area = advtrains.is_node_loaded(pos)
 
 		--custom on_step function
@@ -316,7 +316,7 @@ function wagon:on_step(dtime)
 			if driver and driver:get_player_control_bits()~=self.seatpc[seatno] then
 				local pc=driver:get_player_control()
 				self.seatpc[seatno]=driver:get_player_control_bits()
-				
+
 				if has_driverstand then
 					--regular driver stand controls
 					advtrains.on_control_change(pc, self:train(), data.wagon_flipped)
@@ -344,33 +344,33 @@ function wagon:on_step(dtime)
 						if pc.up or pc.down then
 							self:get_off(seatno)
 						end
-					end		      
+					end
 				end
 				if pc.aux1 and pc.sneak then
 					self:get_off(seatno)
 				end
 			end
 		end
-		
+
 		--check infotext
 		local outside=train.text_outside or ""
 		if setting_show_ids then
 			outside = outside .. "\nT:" .. data.train_id .. " W:" .. self.id .. " O:" .. data.owner
 		end
-		
-		
+
+
 		--show off-track information in outside text instead of notifying the whole server about this
 		if train.off_track then
 			outside = outside .."\n!!! Train off track !!!"
 		end
-		
+
 		if self.infotext_cache~=outside  then
 			self.object:set_properties({infotext=outside})
 			self.infotext_cache=outside
 		end
-		
+
 		local fct=data.wagon_flipped and -1 or 1
-		
+
 		--door animation
 		if self.doors then
 			if (self.door_anim_timer or 0)<=0 then
@@ -401,7 +401,7 @@ function wagon:on_step(dtime)
 				self.door_anim_timer = (self.door_anim_timer or 0) - dtime
 			end
 		end
-		
+
 		--for path to be available. if not, skip step
 		if not train.path or train.no_step then
 			self.object:set_velocity({x=0, y=0, z=0})
@@ -411,12 +411,12 @@ function wagon:on_step(dtime)
 		if not data.pos_in_train then
 			return
 		end
-		
+
 		-- Calculate new position, yaw and direction vector
 		local index = advtrains.path_get_index_by_offset(train, train.index, -data.pos_in_train)
 		local pos, yaw, npos, npos2 = advtrains.path_get_interpolated(train, index)
 		local vdir = vector.normalize(vector.subtract(npos2, npos))
-		
+
 		--automatic get_on
 		--needs to know index and path
 		if self.door_entry and train.door_open and train.door_open~=0 and train.velocity==0 then
@@ -446,7 +446,7 @@ function wagon:on_step(dtime)
 				end
 			end
 		end
-		
+
 		--checking for environment collisions(a 3x3 cube around the center)
 		if not IGNORE_WORLD and is_in_loaded_area and not train.recently_collided_with_env then
 			local collides=false
@@ -469,7 +469,7 @@ function wagon:on_step(dtime)
 				advtrains.atc.train_reset_command(train)
 			end
 		end
-		
+
 		--DisCouple
 		-- FIX: Need to do this after the yaw calculation
 		if is_in_loaded_area and data.pos_in_trainparts and data.pos_in_trainparts>1 then
@@ -493,26 +493,26 @@ function wagon:on_step(dtime)
 				end
 			end
 		end
-		
+
 		--FIX: use index of the wagon, not of the train.
 		local velocity = train.velocity * advtrains.global_slowdown
 		local acceleration = (train.acceleration or 0) * (advtrains.global_slowdown*advtrains.global_slowdown)
 		local velocityvec = vector.multiply(vdir, velocity)
 		local accelerationvec = vector.multiply(vdir, acceleration)
-		
+
 		if data.wagon_flipped then
 			yaw=yaw+math.pi
 		end
-		
+
 		-- this timer runs off every 2 seconds.
 		self.updatepct_timer=(self.updatepct_timer or 0)-dtime
 		local updatepct_timer_elapsed = self.updatepct_timer<=0
-		
+
 		if updatepct_timer_elapsed then
 			--restart timer
 			self.updatepct_timer=2
 			-- perform checks that are not frequently needed
-			
+
 			-- unload entity if out of range (because relevant pr won't be merged in engine)
 			-- This is a WORKAROUND!
 			local players_in = false
@@ -535,18 +535,18 @@ function wagon:on_step(dtime)
 				end
 			end
 		end
-		
-		if not self.old_velocity_vector 
+
+		if not self.old_velocity_vector
 				or not vector.equals(velocityvec, self.old_velocity_vector)
-				or not self.old_acceleration_vector 
+				or not self.old_acceleration_vector
 				or not vector.equals(accelerationvec, self.old_acceleration_vector)
 				or self.old_yaw~=yaw
 				or updatepct_timer_elapsed then--only send update packet if something changed
-			
+
 			self.object:set_pos(pos)
 			self.object:set_velocity(velocityvec)
 			self.object:set_acceleration(accelerationvec)
-			
+
 			if #self.seats > 0 and self.old_yaw ~= yaw then
 				if not self.player_yaw then
 					self.player_yaw = {}
@@ -565,12 +565,12 @@ function wagon:on_step(dtime)
 						p:set_look_horizontal((self.player_yaw[name] or 0)+yaw)
 					end
 				end
-				self.turning = true							 
+				self.turning = true
 			elseif self.old_yaw == yaw then
 				-- train is no longer turning
 				self.turning = false
 			end
-			
+
 			if self.object.set_rotation then
                 local pitch = math.atan2(vdir.y, math.hypot(vdir.x, vdir.z))
                 if data.wagon_flipped then
@@ -580,7 +580,7 @@ function wagon:on_step(dtime)
             else
                 self.object:set_yaw(yaw)
             end
-			
+
 			if self.update_animation then
 				self:update_animation(train.velocity, self.old_velocity)
 			end
@@ -592,8 +592,8 @@ function wagon:on_step(dtime)
 				self.discouple.object:remove()
 			end
 		end
-		
-		
+
+
 		self.old_velocity_vector=velocityvec
 		self.old_velocity = train.velocity
 		self.old_acceleration_vector=accelerationvec
@@ -606,9 +606,9 @@ function wagon:on_rightclick(clicker)
 		if not clicker or not clicker:is_player() then
 			return
 		end
-		
+
 		local data = advtrains.wagons[self.id]
-		
+
 		local pname=clicker:get_player_name()
 		local no=self:get_seatno(pname)
 		if no then
@@ -662,7 +662,7 @@ function wagon:on_rightclick(clicker)
 					end
 					return
 				end
-				
+
 				local doors_open = self:train().door_open~=0 or clicker:get_player_control().sneak
 				local allow, rsn=false, "Wagon has no seats!"
 				for _,sgr in ipairs(self.assign_to_seat_group) do
@@ -692,12 +692,12 @@ function wagon:on_rightclick(clicker)
 end
 
 function wagon:get_on(clicker, seatno)
-	
+
 	local data = advtrains.wagons[self.id]
-		
+
 	if not data.seatp then data.seatp={}end
 	if not self.seatpc then self.seatpc={}end--player controls in driver stands
-	
+
 	if not self.seats[seatno] then return end
 	local oldno=self:get_seatno(clicker:get_player_name())
 	if oldno then
@@ -724,9 +724,9 @@ function wagon:get_off_plr(pname)
 	end
 end
 function wagon:get_seatno(pname)
-	
+
 	local data = advtrains.wagons[self.id]
-	
+
 	for no, cont in pairs(data.seatp) do
 		if cont==pname then
 			return no
@@ -735,9 +735,9 @@ function wagon:get_seatno(pname)
 	return nil
 end
 function wagon:get_off(seatno)
-	
+
 	local data = advtrains.wagons[self.id]
-	
+
 	if not data.seatp[seatno] then return end
 	local pname = data.seatp[seatno]
 	local clicker = minetest.get_player_by_name(pname)
@@ -768,7 +768,7 @@ function wagon:get_off(seatno)
 				local oadd = { x = (ix2.z-ix1.z)*(d+train.door_open), y = 1, z = (ix1.x-ix2.x)*(d+train.door_open)}
 				local platpos=vector.round(vector.add(ix1, add))
 				local offpos=vector.round(vector.add(ix1, oadd))
-				
+
 				--atdebug("platpos:", platpos, "offpos:", offpos)
 				if minetest.get_item_group(minetest.get_node(platpos).name, "platform")>0 then
 					minetest.after(GETOFF_TP_DELAY, function() clicker:set_pos(offpos) end)
@@ -797,12 +797,12 @@ function wagon:get_off(seatno)
 			end
 		end
 		--atdebug("nope")
-		
+
 	end
 end
 function wagon:show_get_on_form(pname)
 	if not self.initialized then return end
-	
+
 	local data = advtrains.wagons[self.id]
 	if #self.seats==0 then
 		if self.has_inventory and self.get_inventory_formspec and advtrains.check_driving_couple_protection(pname, data.owner, data.whitelist) then
@@ -828,7 +828,7 @@ function wagon:show_get_on_form(pname)
 end
 function wagon:show_wagon_properties(pname)
 	--[[
-	fields: 
+	fields:
 	field: driving/couple whitelist
 	button: save
 	]]
@@ -885,7 +885,7 @@ function wagon.set_fc(data, fcstr)
 		data.fcind = 1
 	elseif data.fcind > #data.fc then
 		data.fcind = #data.fc
-	end	
+	end
 end
 
 function wagon.prev_fc(data)
@@ -911,7 +911,7 @@ function wagon.next_fc(data)
 	if data.fcind == #data.fc and data.fc[data.fcind] == "?" then
 		data.fcrev = true
 		wagon.prev_fc(data)
-		return			
+		return
 	end
 end
 
@@ -935,8 +935,8 @@ function wagon:show_bordcom(pname)
 	local train = self:train()
 	local data = advtrains.wagons[self.id]
 	local linhei
-	
-	local form = "size[11,9]label[0.5,0;AdvTrains Boardcom v0.1]"
+
+	local form = "size[11,9]label[0.5,0;AdvTrains Boardcom v0.1 | Train ID: " .. (minetest.formspec_escape(data.train_id or "")) .. "]"
 	form=form.."textarea[0.5,1.5;7,1;text_outside;"..attrans("Text displayed outside on train")..";"..(minetest.formspec_escape(train.text_outside or "")).."]"
 	form=form.."textarea[0.5,3;7,1;text_inside;"..attrans("Text displayed inside train")..";"..(minetest.formspec_escape(train.text_inside or "")).."]"
 	form=form.."field[7.5,1.75;3,1;line;"..attrans("Line")..";"..(minetest.formspec_escape(train.line or "")).."]"
@@ -966,7 +966,7 @@ function wagon:show_bordcom(pname)
 				owns_any = owns_any or (not ent.owner or ent.owner==pname)
 			end
 		end
-		
+
 		if train.movedir==1 then
 			form = form .. "label["..(#train.trainparts+1)..","..(linhei)..";-->]"
 		else
@@ -981,12 +981,12 @@ function wagon:show_bordcom(pname)
 		if couple_back then
 			form = form .. "image_button["..(#train.trainparts+0.5)..","..(linhei+1)..";1,1;advtrains_couple.png;cpl_b;]"
 		end
-		
+
 	else
 		form=form.."label[0.5,4.5;Train overview / coupling control is only shown when the train stands.]"
 	end
 	form = form .. "button[0.5,8;3,1;save;Save]"
-	
+
 	-- Interlocking functionality: If the interlocking module is loaded, you can set the signal aspect
 	-- from inside the train
 	if advtrains.interlocking and train.lzb and #train.lzb.checkpoints > 0 then
@@ -1005,12 +1005,12 @@ function wagon:show_bordcom(pname)
 			form = form .. "button[4.5,7;5,1;ilarsenable;Clear 'Disable ARS' flag]"
 		end
 	end
-	
+
 	minetest.show_formspec(pname, "advtrains_bordcom_"..self.id, form)
 end
 function wagon:handle_bordcom_fields(pname, formname, fields)
 	local data = advtrains.wagons[self.id]
-	
+
 	local seatno=self:get_seatno(pname)
 	if not seatno or not self.seat_groups[self.seats[seatno].group].driving_ctrl_access or not advtrains.check_driving_couple_protection(pname, data.owner, data.whitelist) then
 		return
@@ -1066,14 +1066,14 @@ function wagon:handle_bordcom_fields(pname, formname, fields)
 	--check cpl_eid_front and _back of train
 	local couple_front = checkcouple(train.cpl_front)
 	local couple_back = checkcouple(train.cpl_back)
-	
+
 	if fields.cpl_f and couple_front then
 		couple_front:on_rightclick(pname)
 	end
 	if fields.cpl_b and couple_back then
 		couple_back:on_rightclick(pname)
 	end
-	
+
 	-- Interlocking functionality: If the interlocking module is loaded, you can set the signal aspect
 	-- from inside the train
 	if advtrains.interlocking then
@@ -1095,8 +1095,8 @@ function wagon:handle_bordcom_fields(pname, formname, fields)
 			advtrains.interlocking.ars_set_disable(train, false)
 		end
 	end
-	
-	
+
+
 	if not fields.quit then
 		self:show_bordcom(pname)
 	end
@@ -1251,15 +1251,15 @@ local function check_twagon_owner(train, b_first, pname)
 end
 
 function advtrains.safe_couple_trains(id1, id2, t1f, t2f, pname, try_run,v1,v2)
-	
+
 	if pname and not minetest.check_player_privs(pname, "train_operator") then
 		minetest.chat_send_player(pname, "Missing train_operator privilege")
 		return false
 	end
-	
+
 	local train1=advtrains.trains[id1]
 	local train2=advtrains.trains[id2]
-	
+
 	if not advtrains.train_ensure_init(id1, train1)
 		or not advtrains.train_ensure_init(id2, train2) then
 		return false
@@ -1310,7 +1310,7 @@ function advtrains.safe_decouple_wagon(w_id, pname, try_run)
 		return false
 	end
 	local data = advtrains.wagons[w_id]
-	
+
 	local dpt = data.pos_in_trainparts
 	if not dpt or dpt <= 1 then
 		return false
@@ -1318,20 +1318,20 @@ function advtrains.safe_decouple_wagon(w_id, pname, try_run)
 	local train = advtrains.trains[data.train_id]
 	local owid = train.trainparts[dpt-1]
 	local owdata = advtrains.wagons[owid]
-	
+
 	if not owdata then
 		return
 	end
-	
+
 	if not checklock(pname, data.owner, owdata.owner, data.whitelist, owdata.whitelist) then
 		minetest.chat_send_player(pname, "Not allowed to do this.")
 		return false
 	end
-	
+
 	if try_run then
 		return true
 	end
-	
+
 	advtrains.log("Discouple", pname, train.last_pos, train.text_outside)
 	advtrains.split_train_at_wagon(w_id)
 	return true
@@ -1379,15 +1379,15 @@ function advtrains.register_wagon(sysname_p, prototype, desc, inv_img, nincreati
 	setmetatable(prototype, {__index=wagon})
 	minetest.register_entity(":"..sysname,prototype)
 	advtrains.wagon_prototypes[sysname] = prototype
-	
+
 	minetest.register_craftitem(":"..sysname, {
 		description = desc,
 		inventory_image = inv_img,
 		wield_image = inv_img,
 		stack_max = 1,
-		
+
 		groups = { not_in_creative_inventory = nincreative and 1 or 0},
-		
+
 		on_place = function(itemstack, placer, pointed_thing)
 				if not pointed_thing.type == "node" then
 					return
@@ -1411,17 +1411,17 @@ function advtrains.register_wagon(sysname_p, prototype, desc, inv_img, nincreati
 				local tconns=advtrains.get_track_connections(node.name, node.param2)
 				local yaw = placer:get_look_horizontal()
 				local plconnid = advtrains.yawToClosestConn(yaw, tconns)
-				
+
 				local prevpos = advtrains.get_adjacent_rail(pointed_thing.under, tconns, plconnid, prototype.drives_on)
 				if not prevpos then
 					minetest.chat_send_player(pname, "The track you are trying to place the wagon on is not long enough!")
 					return
 				end
-				
+
 				local wid = advtrains.create_wagon(sysname, pname)
-				
+
 				local id=advtrains.create_new_train_at(pointed_thing.under, plconnid, 0, {wid})
-				
+
 				if not advtrains.is_creative(pname) then
 					itemstack:take_item()
 				end
